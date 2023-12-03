@@ -1,4 +1,7 @@
+from collections import defaultdict
+
 from aocd import get_data
+import re
 
 data = get_data(day=3, year=2023)
 example = """467..114..
@@ -13,139 +16,52 @@ example = """467..114..
 .664.598.."""
 
 def parse_grid(data):
-    grid = [[symbol.replace('.','') for symbol in row] for row in data.split('\n')]
+    grid = [[symbol for symbol in row] for row in data.split('\n')]
     return grid
 
-def fix_grid(grid):
-    new_grid = grid.copy()
-    already_done = set()
-    numbers = {}
+def find_symbols(grid):
+    all_symbols = set()
     for i, row in enumerate(grid):
-        for j, col in enumerate(row):
-            if (i,j) not in already_done:
-                return_val, return_type = get_or_none(grid, i, j)
-                if return_type == 'int':
-                    number, used = construct_number(grid, i, j)
-                    #Wasteful here to do this, but I don't care at this point
-                    for (new_i, new_j) in used:
-                        new_grid[new_i][new_j] = number
-                    for s in used:
-                        numbers[s] = used
-                    already_done = already_done.union(used)
-    return new_grid, numbers
+        for j, val in enumerate(row):
+            if val not in '0123456789.':
+                all_symbols.add((i,j))
+    return all_symbols
 
+def is_adjacent(all_symbols, i, j):
+    for i_val in range(-1, 2):
+        for j_val in range(-1, 2):
+            if (i+i_val, j+j_val) in all_symbols:
+                return True, (i+i_val, j+j_val)
+    return False, None
 
-def get_or_none(data, row, col):
-    try:
-        return_val = int(data[row][col])
-        return_type = 'int'
-    except ValueError:
-        return_val = data[row][col]
-        return_type = 'symbol'
-    except IndexError:
-        return_val = ''
-        return_type = 'none'
-    return return_val, return_type
-
-def is_adjacent(data, row, col):
-    #Decides if a particular row and column is adjacent to a symbol
-    is_adj = False
-    for i in range(-1, 2):
-        for j in range(-1, 2):
-            if i or j:
-                val, val_type = get_or_none(data, row+i, col+j)
-                if val and val_type == 'symbol':
-                    is_adj = True
-    return is_adj
-
-def construct_number(data, row, col):
-    number = data[row][col]
-    used = set()
-    used.add((row,col))
-    going_left = True
-    going_right = True
-    i = 1
-    while going_left or going_right:
-        left_val, left_type = get_or_none(data, row, col-i)
-        right_val, right_type = get_or_none(data, row, col+i)
-        if left_val and left_type == 'int' and going_left:
-            number = str(left_val) + number
-            used.add((row, col-i))
-        else:
-            going_left = False
-        if right_val and right_type == 'int' and going_right:
-            number = number + str(right_val)
-            used.add((row, col+i))
-        else:
-            going_right = False
-        i += 1
-    return int(number), used
-
-
-def part_one(data):
-    grid = parse_grid(data)
-    new_grid, numbers = fix_grid(grid)
-    used = set()
+def find_numbers(grid, all_symbols):
     adjacent_numbers = []
-    for i, row in enumerate(new_grid):
-        for j, col in enumerate(row):
-            val, val_type = get_or_none(new_grid, i, j)
-            if (i, j) not in used and val_type == 'int' and is_adjacent(grid, i, j):
-                used = used.union(numbers[(i,j)])
-                adjacent_numbers.append(val)
-    return sum(adjacent_numbers), used
+    adjacent_count = defaultdict(int)
+    adjacent_to = defaultdict(list)
+    for row_num, row in enumerate(grid):
+        row_str = ''.join(row)
+        all_matches = re.finditer(r'\d+', row_str)
+        for match in all_matches:
+            for col_num in range(*match.span()):
+                is_adj, adj_spot = is_adjacent(all_symbols, row_num, col_num)
+                if is_adj:
+                    adjacent_count[adj_spot] += 1
+                    number = int(match[0])
+                    adjacent_to[adj_spot].append(number)
+                    adjacent_numbers.append(number)
+                    break
+    return adjacent_numbers, adjacent_count, adjacent_to
 
-def part_two(data):
-    pass
+def part_one_and_two(data):
+    grid = parse_grid(data)
+    all_symbols = find_symbols(grid)
+    all_adjacent, adjacent_count, adjacent_to = find_numbers(grid, all_symbols)
+    part_one = sum(all_adjacent)
+    part_two = 0
+    for k, v in adjacent_count.items():
+        if v == 2:
+            part_two += adjacent_to[k][0] * adjacent_to[k][1]
+    return part_one, part_two
 
-part_one_example_answer, _ = part_one(example)
-part_one_answer, d_used = part_one(data)
-#
-# part_two_example_answer = part_two(example)
-# part_two_answer = part_two(data)
-
-# grid = parse_grid(example)
-# new_grid, numbers = fix_grid(grid)
-# # is_adjacent(data, 0, 2)
-# construct_number(grid, 0, 2)
-
-#
-# from collections import defaultdict
-# D = data
-# lines = D.split('\n')
-# G = [[c for c in line] for line in lines]
-# R = len(G)
-# C = len(G[0])
-#
-# p1 = 0
-# nums = defaultdict(list)
-# for r in range(len(G)):
-#   gears = set() # positions of '*' characters next to the current number
-#   n = 0
-#   has_part = False
-#   for c in range(len(G[r])+1):
-#     if c<C and G[r][c].isdigit():
-#       n = n*10+int(G[r][c])
-#       for rr in [-1,0,1]:
-#         for cc in [-1,0,1]:
-#           if 0<=r+rr<R and 0<=c+cc<C:
-#             ch = G[r+rr][c+cc]
-#             if not ch.isdigit() and ch != '.':
-#               has_part = True
-#             if ch=='*':
-#               gears.add((r+rr, c+cc))
-#     elif n>0:
-#       for gear in gears:
-#         nums[gear].append(n)
-#       if has_part:
-#         p1 += n
-#       n = 0
-#       has_part = False
-#       gears = set()
-#
-# print(p1)
-# p2 = 0
-# for k,v in nums.items():
-#   if len(v)==2:
-#     p2 += v[0]*v[1]
-# print(p2)
+part_one_example_answer, part_two_example_answer = part_one_and_two(example)
+part_one_answer, part_two_answer = part_one_and_two(data)
