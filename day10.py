@@ -10,14 +10,17 @@ L|7||
 -L-J|
 L|-JF"""
 
-def add_safe(g, source, target ,direction):
+def add_safe(g, target, source ,direction):
     all_nodes = g.nodes(data=True)
     allows = {'|':['up','down'],
               '-':['left','right'],
               'L':['up','right'],
               'J':['up','left'],
               '7':['down','left'],
-              'F':['down','right']}
+              'F':['down','right'],
+              'S':['up','down','left','right'],
+              '.':[],
+              }
     target_shape = all_nodes[target]['shape']
     if direction in allows[target_shape]:
         g.add_edge(source, target)
@@ -31,7 +34,9 @@ def parse_data(data):
     for i, row in enumerate(data_array):
         for j, val in enumerate(row):
             g.add_node(n*i+j, shape=val, orig_coords = (i-1,j-1))
-    start = None
+            if val == 'S':
+                start = n*i+j
+
     for i, row in enumerate(data_array):
         for j, val in enumerate(row):
             current = n * i + j
@@ -43,35 +48,42 @@ def parse_data(data):
             right  = (n*i) + (j+1)
             match val:
                 case '|':
-                    add_safe(g, above, current, 'down')  # above
-                    add_safe(g, below, current, 'up')  # below
+                    add_safe(g, above, current, 'down')
+                    add_safe(g, below, current, 'up')
                 case '-':
-                    g.add_edge(left, current)  # left
-                    g.add_edge(right, current)  # right
+                    add_safe(g, left, current, 'right')
+                    add_safe(g, right, current, 'left')
                 case 'L':
-                    g.add_edge(above, current)  # above
-                    g.add_edge(right, current)  # right
+                    add_safe(g, above, current, 'down')
+                    add_safe(g, right, current, 'left')
                 case 'J':
-                    g.add_edge(above, current)  # above
-                    g.add_edge(left, current)  # left
+                    add_safe(g, above, current, 'down')
+                    add_safe(g, left, current, 'right')
                 case '7':
-                    g.add_edge(below, current)  # below
-                    g.add_edge(left, current)  # left
+                    add_safe(g, below, current, 'up')
+                    add_safe(g, left, current, 'right')
                 case 'F':
-                    g.add_edge(below, current)  # below
-                    g.add_edge(right, current)  # right
+                    add_safe(g, below, current, 'up')
+                    add_safe(g, right, current, 'left')
                 case '.':
                     pass
-                case 'S':
-                    start = n * i + j
-
 
     return g, start
 
-g, start = parse_data(example)
-cyc = nx.find_cycle(g, start)
-all_nodes = g.nodes(data=True)
-for start, next in cyc:
-    print(f'Start: {all_nodes[start]["shape"]}')
+def part_one(data):
+    g, start = parse_data(data)
+    cyc = nx.find_cycle(g, start)
+    return len(cyc)//2
 
-all_nodes[0]
+harder_example = """7-F7-
+.FJ|7
+SJLL7
+|F--J
+LJ.LJ"""
+
+part_one_example_answer = part_one(example)
+part_one_harder_example_answer = part_one(harder_example)
+part_one_answer = part_one(data)
+
+g, start = parse_data(data)
+g.edges(start)
