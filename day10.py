@@ -68,12 +68,41 @@ def parse_data(data):
                 case '.':
                     pass
 
-    return g, start
+    return g, start, (m,n)
+
+def find_inside_outside(g, boundary, row, j):
+    hits = 0
+    all_nodes = g.nodes(data=True)
+    while j >= 0:
+        cell = row + j
+        if cell in boundary and all_nodes[cell]['shape'] in ['|','L','J','S']:
+            hits += 1
+        j-=1
+    if hits % 2 == 0:
+        io = 'outside'
+    else:
+        io = 'inside'
+    return io
 
 def part_one(data):
-    g, start = parse_data(data)
+    g, start, shape = parse_data(data)
     cyc = nx.find_cycle(g, start)
-    return len(cyc)//2
+    answer = len(cyc)//2
+    return answer
+
+def part_two(data):
+    g, start, shape = parse_data(data)
+    m,n = shape
+    cyc = nx.find_cycle(g, start)
+    uniq_cyc = {i[0] for i in cyc}
+    answer = 0
+    for i in range(m):
+        for j in range(n):
+            if i*n + j in uniq_cyc:
+                continue
+            if find_inside_outside(g,uniq_cyc, i*n, j) == 'inside':
+                answer += 1
+    return answer
 
 harder_example = """7-F7-
 .FJ|7
@@ -85,5 +114,29 @@ part_one_example_answer = part_one(example)
 part_one_harder_example_answer = part_one(harder_example)
 part_one_answer = part_one(data)
 
-g, start = parse_data(data)
-g.edges(start)
+part_two_easy_example = """...........
+.S-------7.
+.|F-----7|.
+.||.....||.
+.||.....||.
+.|L-7.F-J|.
+.|..|.|..|.
+.L--J.L--J.
+..........."""
+
+part_two_hard_example = """.F----7F7F7F7F-7....
+.|F--7||||||||FJ....
+.||.FJ||||||||L7....
+FJL7L7LJLJ||LJ.L-7..
+L--J.L7...LJS7F-7L7.
+....F-J..F7FJ|L7L7L7
+....L7.F7||L7|.L7L7|
+.....|FJLJ|FJ|F7|.LJ
+....FJL-7.||.||||...
+....L---J.LJ.LJLJ..."""
+
+
+
+part_two_example_answer = part_two(part_two_easy_example)
+part_two_harder_example_answer = part_two(part_two_hard_example)
+part_two_answer = part_two(data)
