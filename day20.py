@@ -136,3 +136,35 @@ example_two = """broadcaster -> a
 part_one_example_answer, pulses_sent = part_one(example,1000,False)
 part_one_example_two_answer, pulses_sent = part_one(example_two,1000,False)
 part_one_answer, _ = part_one(data,1000,False)
+
+example_cycle = """broadcaster -> vh
+%nd -> fs
+%ql -> qz
+%vn -> ql, qz
+%sj -> gs
+%zt -> sk
+%gs -> gq, qz
+%xb -> qz, vn
+%gq -> qz, xb
+%sk -> nd
+&qz -> nd, sj, sk, gp, gc, vh, zt
+%gp -> zt
+%fs -> qz, sj
+%vh -> qz, gp
+&gc -> bq"""
+
+modules = parse_input(example_cycle,debug=True)
+cycle = 0
+to_process = [[None, modules['broadcaster'], 'low']]
+pulses_sent['low'] += 1
+while to_process:
+    src, dest, pulse = to_process.pop(0)
+    next_steps = dest.receive(src, pulse)
+    to_process += next_steps
+    cycle += 1
+
+#mh 11 -> 12 -> 13 -> 11 -> 12 -> 11 -> 22 -> (back to beginning) 11 #92
+#lg 9 -> 16 -> 9 -> 17 -> 9 -> 16 -> 9 -> 24 -> (back to beginning) 9 #109
+#sp 11 -> 12 -> 11 -> 13 -> 11 -> 12 -> 11 -> 22 -> (back to beginning) 11 #103
+#vh 12 -> 13 -> 12 -> 14 -> 12 -> 13 -> 12 -> 15 -> 12 -> 13 -> 12 -> 14 -> 12 -> 13 -> 12 -> 16 -> 12 -> 13 -> 12 -> 14
+# -> 12 -> 13 -> 12 -> 15 -> 12 -> 13 -> 12 -> 14 -> 12 -> 13 -> 12 -> 26 -> (back to beginning) 12 # 424
