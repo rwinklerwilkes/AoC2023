@@ -56,5 +56,17 @@ def part_one(data):
     answer = len(steps_at_target)
     return answer
 
+
 part_one_example_answer = part_one(example)
 part_one_answer = part_one(data)
+
+plots, start, m, n = parse_data(data)
+steps_at_target = take_steps(plots, start, m, n, 196)
+answer = len(steps_at_target)
+#3738
+#33270
+#92194
+
+#With much help from https://www.reddit.com/r/adventofcode/comments/18nevo3/comment/keao4q8/
+f = lambda n,a,b,c: a+n*(b-a+(n-1)*(c-b-b+a)//2)
+print(f(26501365 // 131, *[3738,33270,92194]))
